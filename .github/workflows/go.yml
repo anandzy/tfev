@@ -2,8 +2,8 @@ name: Build & Release
 
 on:
   push:
-    branches:
-      - 'feature/*'   # Only runs on branches like feature/my-new-feature
+    tags:
+      - 'feature/*'
 
 permissions:
   contents: write
