@@ -2,13 +2,14 @@ name: Build & Release
 
 on:
   push:
-    branches: [ "main" ]  # Build and release on every push to main
+    branches:
+      - 'feature/*'   # Only runs on branches like feature/my-new-feature
 
 permissions:
-  contents: write  # Needed to create a release
+  contents: write
 
 jobs:
-  build:
+  build-and-release:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,15 +20,12 @@ jobs:
         with:
           go-version: '1.23'
 
-      # Build for Linux
       - name: Build Linux binary
         run: GOOS=linux GOARCH=amd64 go build -o filtervars-linux-amd64 main.go
 
-      # Build for macOS
       - name: Build macOS binary
         run: GOOS=darwin GOARCH=amd64 go build -o filtervars-darwin-amd64 main.go
 
-      # Build for Windows
       - name: Build Windows binary
         run: GOOS=windows GOARCH=amd64 go build -o filtervars-windows-amd64.exe main.go
 
@@ -35,16 +33,17 @@ jobs:
         run: |
           mkdir release
           mv filtervars-* release/
-          ls -l release
+          ls -lh release
 
-      # Create a GitHub Release for every commit on main
-      - name: Create Release
+      # Optionally, you can skip releasing on feature branches by removing below step
+      - name: Create Pre-Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.sha }}
-          name: Release ${{ github.sha }}
+          tag_name: feature-${{ github.head_ref || github.ref_name }}-${{ github.run_number }}
+          name: "Feature Build: ${{ github.head_ref || github.ref_name }} Run #${{ github.run_number }}"
+          prerelease: true
           body: |
-            Automated build from commit ${{ github.sha }}.
+            Automated build from branch ${{ github.ref_name }}, run #${{ github.run_number }}.
           files: release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
