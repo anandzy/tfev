@@ -1,0 +1,50 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [ "main" ]  # Build and release on every push to main
+
+permissions:
+  contents: write  # Needed to create a release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+
+      # Build for Linux
+      - name: Build Linux binary
+        run: GOOS=linux GOARCH=amd64 go build -o filtervars-linux-amd64 main.go
+
+      # Build for macOS
+      - name: Build macOS binary
+        run: GOOS=darwin GOARCH=amd64 go build -o filtervars-darwin-amd64 main.go
+
+      # Build for Windows
+      - name: Build Windows binary
+        run: GOOS=windows GOARCH=amd64 go build -o filtervars-windows-amd64.exe main.go
+
+      - name: Archive release assets
+        run: |
+          mkdir release
+          mv filtervars-* release/
+          ls -l release
+
+      # Create a GitHub Release for every commit on main
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.sha }}
+          name: Release ${{ github.sha }}
+          body: |
+            Automated build from commit ${{ github.sha }}.
+          files: release/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
