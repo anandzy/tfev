@@ -2,8 +2,8 @@ name: Build & Release
 
 on:
   push:
-    tags:
-      - 'feature/*'
+    branches:
+      - 'feature/*'   # Runs on pushes to feature/* branches
 
 permissions:
   contents: write
@@ -35,7 +35,6 @@ jobs:
           mv filtervars-* release/
           ls -lh release
 
-      # Optionally, you can skip releasing on feature branches by removing below step
       - name: Create Pre-Release
         uses: softprops/action-gh-release@v2
         with:
