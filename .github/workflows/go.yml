@@ -23,8 +23,11 @@ jobs:
       - name: Build Linux binary
         run: GOOS=linux GOARCH=amd64 go build -o filtervars-linux-amd64 main.go
 
-      - name: Build macOS binary
+      - name: Build macOS amd64 binary
         run: GOOS=darwin GOARCH=amd64 go build -o filtervars-darwin-amd64 main.go
+
+      - name: Build macOS arm64 binary
+        run: GOOS=darwin GOARCH=arm64 go build -o filtervars-darwin-arm64 main.go
 
       - name: Build Windows binary
         run: GOOS=windows GOARCH=amd64 go build -o filtervars-windows-amd64.exe main.go
