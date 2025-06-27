@@ -1,9 +1,9 @@
-name: Build & Release
+name: Build & Serial Release
 
 on:
   push:
     branches:
-      - 'feature/*'   # Runs on pushes to feature/* branches
+      - 'feature/*'
 
 permissions:
   contents: write
@@ -21,31 +21,29 @@ jobs:
           go-version: '1.23'
 
       - name: Build Linux binary
-        run: GOOS=linux GOARCH=amd64 go build -o filtervars-linux-amd64 main.go
+        run: GOOS=linux GOARCH=amd64 go build -o filtervars main.go
 
-      - name: Build macOS amd64 binary
-        run: GOOS=darwin GOARCH=amd64 go build -o filtervars-darwin-amd64 main.go
-
-      - name: Build macOS arm64 binary
-        run: GOOS=darwin GOARCH=arm64 go build -o filtervars-darwin-arm64 main.go
-
-      - name: Build Windows binary
-        run: GOOS=windows GOARCH=amd64 go build -o filtervars-windows-amd64.exe main.go
-
-      - name: Archive release assets
+      - name: Determine next serial release number
+        id: serial
         run: |
-          mkdir release
-          mv filtervars-* release/
-          ls -lh release
+          latest=$(gh release list --limit 100 | grep -E '^serial-' | awk '{print $1}' | sed 's/serial-//' | sort -n | tail -1)
+          if [ -z "$latest" ]; then
+            next=1
+          else
+            next=$((latest + 1))
+          fi
+          echo "serial_number=$next" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create Pre-Release
+      - name: Create Serial Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: feature-${{ github.head_ref || github.ref_name }}-${{ github.run_number }}
-          name: "Feature Build: ${{ github.head_ref || github.ref_name }} Run #${{ github.run_number }}"
-          prerelease: true
+          tag_name: serial-${{ steps.serial.outputs.serial_number }}
+          name: "Serial Release ${{ steps.serial.outputs.serial_number }}"
+          prerelease: false
           body: |
-            Automated build from branch ${{ github.ref_name }}, run #${{ github.run_number }}.
-          files: release/*
+            Automated build for serial release ${{ steps.serial.outputs.serial_number }}.
+          files: filtervars
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
