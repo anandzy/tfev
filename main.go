@@ -26,6 +26,11 @@ func readVarList(filename string) ([]string, error) {
 }
 
 func main() {
+	if len(os.Args) == 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
+		fmt.Println("filtervars version 1.0.0")
+		os.Exit(0)
+	}
+
 	if len(os.Args) != 4 {
 		fmt.Printf("Usage: %s <input_tfvars_file> <variable_list_file> <output_tfvars_file>\n", os.Args[0])
 		os.Exit(1)
