@@ -26,7 +26,7 @@ jobs:
       - name: Determine next serial release number
         id: serial
         run: |
-          latest=$(gh release list --limit 100 | grep -E '^serial-' | awk '{print $1}' | sed 's/serial-//' | sort -n | tail -1)
+          latest=$(gh release list --limit 100 --json tagName --jq '.[] | select(.tagName | startswith("serial-")) | .tagName' | sed 's/serial-//' | sort -n | tail -1)
           if [ -z "$latest" ]; then
             next=1
           else
@@ -35,6 +35,9 @@ jobs:
           echo "serial_number=$next" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Debug tag
+        run: echo "Next serial tag is serial-${{ steps.serial.outputs.serial_number }}"
 
       - name: Create Serial Release
         uses: softprops/action-gh-release@v2
