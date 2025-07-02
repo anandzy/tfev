@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build-and-release:
-    runs-on: [self-hosted, cloud-infra]
+    runs-on: [cloud-infra]
 
     steps:
       - uses: actions/checkout@v4
