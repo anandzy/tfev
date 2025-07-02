@@ -2,7 +2,7 @@
 
 set -e
 
-VERSION="feature-feature%2F1a-4"
+VERSION="SerialRelease2"
 
 OS="$(uname | tr '[:upper:]' '[:lower:]')"
 ARCH="amd64"

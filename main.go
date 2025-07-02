@@ -26,13 +26,101 @@ func readVarList(filename string) ([]string, error) {
 }
 
 func main() {
+	if len(os.Args) == 5 && os.Args[1] == "-tvars2toml" {
+		tfvarsFile := os.Args[2]
+		varFile := os.Args[3]
+		outFile := os.Args[4]
+
+		filterVars, err := readVarList(varFile)
+		if err != nil {
+			fmt.Printf("Failed to read %s: %s\n", varFile, err)
+			return
+		}
+
+		tfLines := []string{}
+		f, err := os.Open(tfvarsFile)
+		if err != nil {
+			fmt.Printf("Failed to open %s: %s\n", tfvarsFile, err)
+			return
+		}
+		defer f.Close()
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			tfLines = append(tfLines, scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			fmt.Printf("Failed to read lines: %s\n", err)
+			return
+		}
+
+		varMap := make(map[string][]string)
+		i := 0
+		for i < len(tfLines) {
+			line := tfLines[i]
+			trimmed := strings.TrimSpace(line)
+			if trimmed == "" || strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, "//") {
+				i++
+				continue
+			}
+			eqIdx := strings.Index(trimmed, "=")
+			if eqIdx > 0 {
+				varName := strings.TrimSpace(trimmed[:eqIdx])
+				valueStart := strings.TrimSpace(trimmed[eqIdx+1:])
+				block := []string{line}
+
+				// Handle multi-line values
+				if strings.HasPrefix(valueStart, "[") && !strings.Contains(valueStart, "]") {
+					i++
+					for i < len(tfLines) {
+						block = append(block, tfLines[i])
+						if strings.Contains(tfLines[i], "]") {
+							break
+						}
+						i++
+					}
+				} else if strings.HasPrefix(valueStart, "{") && !strings.Contains(valueStart, "}") {
+					i++
+					for i < len(tfLines) {
+						block = append(block, tfLines[i])
+						if strings.Contains(tfLines[i], "}") {
+							break
+						}
+						i++
+					}
+				}
+				varMap[varName] = block
+			}
+			i++
+		}
+
+		out, err := os.Create(outFile)
+		if err != nil {
+			fmt.Printf("Failed to create %s: %s\n", outFile, err)
+			return
+		}
+		defer out.Close()
+
+		for _, v := range filterVars {
+			if lines, ok := varMap[v]; ok {
+				for _, l := range lines {
+					out.WriteString(l + "\n")
+				}
+			}
+		}
+
+		fmt.Printf("Filtered vars written in TOML format to %s\n", outFile)
+		return
+	}
+
 	if len(os.Args) == 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
 		fmt.Println("filtervars version 1.0.0")
 		os.Exit(0)
 	}
 
 	if len(os.Args) != 4 {
-		fmt.Printf("Usage: %s <input_tfvars_file> <variable_list_file> <output_tfvars_file>\n", os.Args[0])
+		fmt.Printf("Usage:\n")
+		fmt.Printf("  %s <input_tfvars_file.tfvars> <variable_list_file.txt> <output_tfvars_file.tfvars>\n", os.Args[0])
+		fmt.Printf("  %s -tvars2toml <input_tfvars_file.tfvars> <variable_list_file.txt> <output_tfvars_file.toml>\n", os.Args[0])
 		os.Exit(1)
 	}
 
