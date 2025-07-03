@@ -1,4 +1,4 @@
-name: Build & Serial Release
+name: Build & Daily Release
 
 on:
   push:
@@ -24,32 +24,26 @@ jobs:
           go-version: '1.23'
 
       - name: Build Linux binary
-        run: GOOS=linux GOARCH=amd64 go build -o filtervars main.go
-
-      - name: Determine next serial release number
-        id: serial
         run: |
-          latest=$(gh release list --limit 100 --json tagName --jq '.[] | select(.tagName | startswith("serial-")) | .tagName' | sed 's/serial-//' | sort -n | tail -1)
-          if [ -z "$latest" ]; then
-            next=1
-          else
-            next=$((latest + 1))
-          fi
-          echo "serial_number=$next" >> $GITHUB_OUTPUT
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOOS=linux GOARCH=amd64 go build -o filtervars main.go
 
-      - name: Debug tag
-        run: echo "Next serial tag is serial-${{ steps.serial.outputs.serial_number }}"
+      # 1) Figure out today’s YYMMDD tag
+      - name: Determine release date
+        id: release_date
+        run: |
+          # use UTC to keep it consistent across timezones
+          echo "dateTag=$(date -u +'%y%m%d')" >> $GITHUB_OUTPUT
 
-      - name: Create Serial Release
+      # 2) Create or update the GitHub Release
+      - name: Publish Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: serial-${{ steps.serial.outputs.serial_number }}
-          name: "Serial Release ${{ steps.serial.outputs.serial_number }}"
-          prerelease: false
+          tag_name: ${{ steps.release_date.outputs.dateTag }}
+          name: ${{ steps.release_date.outputs.dateTag }}
           body: |
-            Automated build for serial release ${{ steps.serial.outputs.serial_number }}.
+            Automated build for release ${{ steps.release_date.outputs.dateTag }}.
           files: filtervars
+          # overwrite_files=true will replace the old asset if it already exists
+          overwrite_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
