@@ -13,7 +13,7 @@ jobs:
     runs-on:
       - self-hosted
       - macOS
-      - ARM64
+      - ARM64                         # ← still your self-hosted Mac runner
 
     steps:
       - uses: actions/checkout@v4
@@ -27,14 +27,14 @@ jobs:
         run: |
           GOOS=linux GOARCH=amd64 go build -o filtervars main.go
 
-      # 1) Figure out today’s YYMMDD tag
+      # 1) Compute today's tag in YYMMDD form
       - name: Determine release date
         id: release_date
         run: |
-          # use UTC to keep it consistent across timezones
+          # use UTC so it's consistent regardless of timezone
           echo "dateTag=$(date -u +'%y%m%d')" >> $GITHUB_OUTPUT
 
-      # 2) Create or update the GitHub Release
+      # 2) Create or update that day's Release
       - name: Publish Release
         uses: softprops/action-gh-release@v2
         with:
@@ -43,7 +43,6 @@ jobs:
           body: |
             Automated build for release ${{ steps.release_date.outputs.dateTag }}.
           files: filtervars
-          # overwrite_files=true will replace the old asset if it already exists
-          overwrite_files: true
+          overwrite_files: true          # rewrites the asset if it already exists
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
